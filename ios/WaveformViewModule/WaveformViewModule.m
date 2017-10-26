@@ -338,6 +338,10 @@ RCT_EXPORT_METHOD(stop) {
      }*/
     [self hideDialog];
     
+    NSMutableDictionary *dic=[[NSMutableDictionary alloc]init];
+    [dic setValue:@"confirm" forKey:@"type"];
+    [dic setValue:@"2" forKey:@"voiceApiType"];     //只返回本地声音文件路径
+    _pick.bolock(dic);
 }
 
 
