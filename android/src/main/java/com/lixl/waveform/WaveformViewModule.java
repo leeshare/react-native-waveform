@@ -287,7 +287,7 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
             showTip("mIse.isEvaluating()=" + (mIse.isEvaluating()));
         }
         hideDialog();
-        commonEvent(EVENT_KEY_CONFIRM);
+        commonEvent(EVENT_KEY_CONFIRM, 2);
     }
 
     private static final String ERROR_NOT_INIT = "please initialize the component first";
@@ -352,7 +352,7 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
         }
     }
 
-    private void commonEvent(String eventKey) {
+    private void commonEvent(String eventKey, Integer type) {
         WritableMap map = Arguments.createMap();
         map.putString("type", eventKey);
         /*WritableArray indexes = Arguments.createArray();
@@ -379,7 +379,7 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
         }
 
         map.putString("voiceResult", voiceResult);
-        map.putString("voiceApiType", "1");
+        map.putString("voiceApiType", type.toString());
         sendEvent(getReactApplicationContext(), CONFIRM_EVENT_NAME, map);
     }
 
@@ -407,7 +407,7 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
 
                 showTip("评测结束");
                 hideDialog();
-                commonEvent(EVENT_KEY_CONFIRM);
+                commonEvent(EVENT_KEY_CONFIRM, 1);
             }else {
                 showTip("测评进行中");
             }
@@ -419,7 +419,7 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
                 showTip("error:"+ error.getErrorCode() + "," + error.getErrorDescription());
                 alert(error.getErrorDescription());
                 hideDialog();
-                commonEvent(EVENT_KEY_CONFIRM);
+                commonEvent(EVENT_KEY_CONFIRM, 1);
                 //startEvaluate();
             } else {
                 Log.d(TAG, "evaluator over");
