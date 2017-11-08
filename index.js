@@ -1,7 +1,7 @@
 import {
 	Platform,
 	NativeModules,
-    NativeAppEventEmitter
+  NativeAppEventEmitter
 } from 'react-native';
 
 //module.exports = NativeModules.WaveformViewModule;
@@ -28,10 +28,28 @@ export default {
 	stop() {
 		WaveformViewModule.stop();
 	},
-    isWaveformShow(callback){
+  isWaveformShow(callback){
 		WaveformViewModule.isWaveformShow(callback);
 	},
+	initVoice(options){
+		let opt = {
+		    onStop(){},
+			...options
+		};
+		let fnConf = {
+			confirm: opt.onStop,
+		};
+		WaveformViewModule.initRecordVoice(opt);
+        this.listener && this.listener.remove();
+        this.listener = NativeAppEventEmitter.addListener('confirmEvent', event => {
+            fnConf[event['type']](event['voiceResult'], event['voiceApiType']);
+        });
+	},
+	startVoice(options){
+		WaveformViewModule.startRecordVoice(options);
+	},
 	alert(msg){
-    	WaveformViewModule.alert(msg);
+    WaveformViewModule.alert(msg);
 	}
 }
+
