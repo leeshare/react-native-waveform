@@ -120,6 +120,10 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
         Toast.makeText(getReactApplicationContext(), message, Toast.LENGTH_SHORT).show();
     }
 
+    /*
+    初始化波形
+    录音到本地
+     */
     private void initMediaRecorder(){
         if (mMediaRecorder == null)
             mMediaRecorder = new MediaRecorder();
@@ -141,9 +145,10 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
         if(!temp.exists()){
             temp.mkdir();
         }*/
+
         String fullPath = mContext.getApplicationContext().getExternalFilesDir("").getAbsolutePath();
         //File file = new File(Environment.getExternalStorageDirectory().getPath(), "HelloWorld.log");
-        File file = new File(fullPath, "self");
+        File file = new File(fullPath, "self_" + destinationDir);
         if (file.exists()) {
             file.delete();
         }
@@ -160,8 +165,6 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
             e.printStackTrace();
         }
         mMediaRecorder.start();
-
-
     }
 
     class MyClickListener implements View.OnClickListener {
@@ -281,10 +284,12 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
 
     @ReactMethod
     public void stop() {
-        showTip("mIse.isEvaluating()=" + (mIse.isEvaluating()));
-        if (mIse.isEvaluating()) {
-            mIse.stopEvaluating();
+        if(mIse != null) {
             showTip("mIse.isEvaluating()=" + (mIse.isEvaluating()));
+            if (mIse.isEvaluating()) {
+                mIse.stopEvaluating();
+                showTip("mIse.isEvaluating()=" + (mIse.isEvaluating()));
+            }
         }
         hideDialog();
         commonEvent(EVENT_KEY_CONFIRM, 2);
@@ -522,4 +527,83 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
     private void showTip(String str) {
         //alert(str);
 	}
+
+    /*
+    初始化，并开始记录
+    只是记录声音到本地，不去科大讯飞校验
+    */
+    @ReactMethod
+    public void initRecordVoice(ReadableMap options) throws InterruptedIOException {
+        activity = getCurrentActivity();
+        if (activity != null) {
+            mContext = activity.getApplicationContext();
+            View view = activity.getLayoutInflater().inflate(R.layout.activity_main, null);
+
+            isAlive = true;
+            int height = 300;
+            standardTxt = "";
+            if (options.hasKey(BOX_HEIGHT)) {
+                height = options.getInt(BOX_HEIGHT);
+            }
+            //destinationDir = ".ys/";
+            if (options.hasKey(DESTINATION_DIR)) {
+                destinationDir = options.getString(DESTINATION_DIR);
+            }
+            if (dialog == null) {
+                dialog = new Dialog(activity, R.style.Dialog_Full_Screen);
+                dialog.setContentView(view);
+                WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
+                Window window = dialog.getWindow();
+                if (window != null) {
+                    layoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+                    layoutParams.format = PixelFormat.TRANSPARENT;
+                    layoutParams.windowAnimations = R.style.PickerAnim;
+                    layoutParams.width = WindowManager.LayoutParams.MATCH_PARENT;
+                    layoutParams.height = height;
+                    layoutParams.gravity = Gravity.BOTTOM;
+                    layoutParams.y = 0;
+                    window.setAttributes(layoutParams);
+                }
+
+                dialog.show();
+            } else {
+                dialog.show();
+            }
+
+            voiceLineView = (VoiceLineView) view.findViewById(R.id.voicLine);
+            initMediaRecorder();
+
+            bindButtonClick(view);
+            Thread thread = new Thread(this);
+            thread.start();
+        } else {
+            Toast.makeText(getReactApplicationContext(), "Activity is null", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /*
+    再次
+    记录声音到本地，不去科大讯飞校验
+    （覆盖原来的记录）
+     */
+    @ReactMethod
+    public void startRecordVoice(ReadableMap options){
+        if (dialog == null) {
+            return;
+        }
+        if (!dialog.isShowing()) {
+            isAlive = true;
+            if (options.hasKey(DESTINATION_DIR)) {
+                destinationDir = options.getString(DESTINATION_DIR);
+            }
+            initMediaRecorder();
+
+            mContext = activity.getApplicationContext();
+
+            dialog.show();
+            Thread thread = new Thread(this);
+            thread.start();
+        }
+    }
+
 }
