@@ -1,7 +1,7 @@
 import {
 	Platform,
 	NativeModules,
-  NativeAppEventEmitter
+    NativeAppEventEmitter
 } from 'react-native';
 
 //module.exports = NativeModules.WaveformViewModule;
@@ -28,7 +28,7 @@ export default {
 	stop() {
 		WaveformViewModule.stop();
 	},
-  isWaveformShow(callback){
+    isWaveformShow(callback){
 		WaveformViewModule.isWaveformShow(callback);
 	},
 	initVoice(options){
@@ -49,7 +49,6 @@ export default {
 		WaveformViewModule.startRecordVoice(options);
 	},
 	alert(msg){
-    WaveformViewModule.alert(msg);
+    	WaveformViewModule.alert(msg);
 	}
 }
-

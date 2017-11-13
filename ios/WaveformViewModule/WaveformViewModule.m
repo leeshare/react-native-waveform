@@ -12,6 +12,7 @@
 //#import "FlySpeechUtility.h"
 //#import "RCTEventDispatcher.h"
 #import <React/RCTEventDispatcher.h>
+#import <AVFoundation/AVFoundation.h>
 
 #import "ISEParams.h"
 #import "tools/PopupView.h"
@@ -47,12 +48,17 @@ NSString* const KCResultNotify1=@"请点击“开始评测”按钮";
 NSString* const KCResultNotify2=@"请朗读以上内容";
 NSString* const KCResultNotify3=@"停止评测，结果等待中...";
 
+# define COUNTDOWN 60
 
 #pragma mark -
 
 @interface WaveformViewModule () <IFlySpeechEvaluatorDelegate, ISESettingDelegate, ISEResultXmlParserDelegate ,IFlyPcmRecorderDelegate
 //, SFSpeechRecognizerDelegate
->
+>{
+    NSTimer *_timer; //定时器
+    NSInteger countDown;  //倒计时
+    //NSString *filePath;
+}
 
 @property(nonatomic,strong)WaveformDialog *pick;
 @property(nonatomic,assign)float height;
@@ -82,6 +88,16 @@ NSString* const KCResultNotify3=@"停止评测，结果等待中...";
 @property (nonatomic,strong) SFSpeechAudioBufferRecognitionRequest *recognitionRequest;
 */
 //end -----
+
+@property (nonatomic, strong) AVAudioSession *session;
+
+@property (nonatomic, strong) AVAudioRecorder *recorder;//录音器
+
+@property (nonatomic, strong) NSURL *recordFileUrl; //文件地址
+
+@property (nonatomic, strong)NSString *filePath;
+
+@property (nonatomic, strong)NSString *fileName;
 
 @end
 
@@ -186,8 +202,6 @@ RCT_EXPORT_METHOD(alert:(NSString *)message){
             NSLog(@"%s[OUT],Success,Recorder ret=%d",__func__,ret);
         }
     }
-    
-    
 }
 
 //NSString *standardTxt = nil;
@@ -218,7 +232,8 @@ RCT_EXPORT_METHOD(_init:
         self.height=220;
     }
     
-    self.pick=[[WaveformDialog alloc]initWithFrame:CGRectMake(0, SCREEN_HEIGHT, SCREEN_WIDTH, self.height) /*dic:dataDic leftStr:pickerCancelBtnText centerStr:pickerTitleText rightStr:pickerConfirmBtnText topbgColor:pickerToolBarBg bottombgColor:pickerBg leftbtnbgColor:pickerCancelBtnColor rightbtnbgColor:pickerConfirmBtnColor centerbtnColor:pickerTitleColor selectValueArry:selectArry weightArry:weightArry pickerToolBarFontSize:pickerToolBarFontSize pickerFontSize:pickerFontSize pickerFontColor:pickerFontColor*/
+    self.pick=[[WaveformDialog alloc]initWithFrame:CGRectMake(0, SCREEN_HEIGHT, SCREEN_WIDTH, self.height)
+    /*dic:dataDic leftStr:pickerCancelBtnText centerStr:pickerTitleText rightStr:pickerConfirmBtnText topbgColor:pickerToolBarBg bottombgColor:pickerBg leftbtnbgColor:pickerCancelBtnColor rightbtnbgColor:pickerConfirmBtnColor centerbtnColor:pickerTitleColor selectValueArry:selectArry weightArry:weightArry pickerToolBarFontSize:pickerToolBarFontSize pickerFontSize:pickerFontSize pickerFontColor:pickerFontColor*/
                ];
     
     
@@ -323,7 +338,12 @@ RCT_EXPORT_METHOD(stop) {
         [_pcmRecorder stop];
     }
     
-    [self.iFlySpeechEvaluator stopListening];
+    if(self.iFlySpeechEvaluator){
+        [self.iFlySpeechEvaluator stopListening];
+    }
+    if(self.recorder){
+        [self stopRecord];
+    }
     
     isWaveformShowing = false;
     
@@ -408,6 +428,14 @@ RCT_EXPORT_METHOD(isWaveformShow:
     NSLog(@"get_filename: %@", result);
     return result;
 }
+//根据文件名，读取
+-(NSString *)get_filename2:(NSString *)name
+{
+    NSString *result = [[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0] stringByAppendingPathComponent:name];
+    
+    NSLog(@"get_filename: %@", result);
+    return result;
+}
 
 #pragma mark - IFlySpeechEvaluatorDelegate
 /*!
@@ -434,11 +462,20 @@ RCT_EXPORT_METHOD(isWaveformShow:
     
 }
 
-- (void)audio_PCMtoMP3
+- (void)audio_PCMtoMP3: (NSString *)source: (NSString *)dest
 {
-    NSString *sourcePCM = [[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0] stringByAppendingPathComponent:@"self.pcm"];
+    NSString *sourcePCM;// = [[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0] stringByAppendingPathComponent:source];
+    NSString *saveToMp3;// = [[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0] stringByAppendingPathComponent:dest];
     
-     NSString *saveToMp3 = [[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0] stringByAppendingPathComponent:@"self.mp3"];
+    NSFileManager *file_manager = [NSFileManager defaultManager];
+    sourcePCM = [self get_filename:source];
+    if( [file_manager fileExistsAtPath:sourcePCM] ){
+        saveToMp3 = [self get_filename:dest];
+    }else {
+        sourcePCM = [self get_filename2:source];
+        saveToMp3 = [self get_filename2:dest];
+    }
+    
     
     @try {
         int read, write;
@@ -495,7 +532,7 @@ RCT_EXPORT_METHOD(isWaveformShow:
         [_pcmRecorder stop];
     }
     //转换为mp3
-    [self audio_PCMtoMP3];
+    [self audio_PCMtoMP3: @"self.pcm": @"self.mp3"];
 }
 
 /*!
@@ -542,8 +579,6 @@ RCT_EXPORT_METHOD(isWaveformShow:
         
     }
     
-    //[self performSelectorOnMainThread:@selector(resetBtnSatus:) withObject:errorCode waitUntilDone:NO];
-    
 }
 
 /*!
@@ -573,27 +608,21 @@ RCT_EXPORT_METHOD(isWaveformShow:
         }
         
         self.resultText=showText;
-        //self.resultView.text = showText;
         self.isSessionResultAppear=YES;
         self.isSessionEnd=YES;
         if(isLast){
             [self.popupView setText:@"评测结束"];
-            //[self.view addSubview:self.popupView];
         }
         
-        
         [self commonEvent];
-        
         
     }
     else{
         if(isLast){
             [self.popupView setText:@"你好像没有说话哦"];
-            //[self.view addSubview:self.popupView];
         }
         self.isSessionEnd=YES;
     }
-    //self.startBtn.enabled=YES;
 }
 
 - (void)commonEvent {
@@ -934,5 +963,192 @@ RCT_EXPORT_METHOD(isWaveformShow:
 }
 */
 //-----------------------------------
+/**
+ *  添加定时器
+ */
+- (void)addTimer
+{
+    _timer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(refreshLabelText) userInfo:nil repeats:YES];
+    [[NSRunLoop currentRunLoop] addTimer:_timer forMode:NSRunLoopCommonModes];
+}
+
+/**
+ *  移除定时器
+ */
+- (void)removeTimer
+{
+    [_timer invalidate];
+    _timer = nil;
+    
+}
+
+
+- (void)startRecord{
+    NSLog(@"开始录音");
+    
+//    countDown = 60;
+//    [self addTimer];
+    
+    AVAudioSession *session =[AVAudioSession sharedInstance];
+    NSError *sessionError;
+    [session setCategory:AVAudioSessionCategoryPlayAndRecord error:&sessionError];
+    
+    if (session == nil) {
+        
+        NSLog(@"Error creating session: %@",[sessionError description]);
+        
+    }else{
+        [session setActive:YES error:nil];
+        
+    }
+    
+    self.session = session;
+    
+    
+    //1.获取沙盒地址
+    NSString *path = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
+    //filePath = [path stringByAppendingString:@"/RRecord.wav"];
+    self.fileName = [@"self_" stringByAppendingString:[self.selfVoiceDir stringByAppendingString:@".pcm"]];
+    self.filePath = [[path stringByAppendingString:@"/"] stringByAppendingString: self.fileName];
+    
+    //2.获取文件路径
+    self.recordFileUrl = [NSURL fileURLWithPath:self.filePath];
+    
+    /*
+    [self.iFlySpeechEvaluator setParameter:@"16000" forKey:[IFlySpeechConstant SAMPLE_RATE]];
+    [self.iFlySpeechEvaluator setParameter:@"utf-8" forKey:[IFlySpeechConstant TEXT_ENCODING]];
+    [self.iFlySpeechEvaluator setParameter:@"xml" forKey:[IFlySpeechConstant ISE_RESULT_TYPE]];
+    [self.iFlySpeechEvaluator setParameter:@"self.pcm" forKey:[IFlySpeechConstant ISE_AUDIO_PATH]];
+    NSStringEncoding encoding = CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingGB_18030_2000);
+    */
+    
+    //设置参数
+    NSDictionary *recordSetting = [[NSDictionary alloc] initWithObjectsAndKeys:
+                                   //采样率  8000/11025/22050/44100/96000（影响音频的质量）
+                                   [NSNumber numberWithFloat: 16000.0],AVSampleRateKey,
+                                   // 音频格式
+                                   [NSNumber numberWithInt: kAudioFormatLinearPCM],AVFormatIDKey,
+                                   //采样位数  8、16、24、32 默认为16
+                                   [NSNumber numberWithInt:16],AVLinearPCMBitDepthKey,
+                                   // 音频通道数 1 或 2
+                                   [NSNumber numberWithInt: 1], AVNumberOfChannelsKey,
+                                   //录音质量
+                                   [NSNumber numberWithInt:AVAudioQualityHigh],AVEncoderAudioQualityKey,
+                                   nil];
+    
+    
+    _recorder = [[AVAudioRecorder alloc] initWithURL:self.recordFileUrl settings:recordSetting error:nil];
+    
+    if (_recorder) {
+        
+        _recorder.meteringEnabled = YES;
+        [_recorder prepareToRecord];
+        [_recorder record];
+        
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(60 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            
+            [self stopRecord];
+        });
+        
+    }else{
+        NSLog(@"音频格式和文件存储格式不匹配,无法初始化Recorder");
+        
+    }
+    
+}
+
+- (void)stopRecord{
+    [self removeTimer];
+    NSLog(@"停止录音");
+    
+    if ([self.recorder isRecording]) {
+        [self.recorder stop];
+    }
+    
+    NSFileManager *manager = [NSFileManager defaultManager];
+    if ([manager fileExistsAtPath:self.filePath]){
+        //_noticeLabel.text = [NSString stringWithFormat:@"录了 %ld 秒,文件大小为 %.2fKb",COUNTDOWN - (long)countDown,[[manager attributesOfItemAtPath:filePath error:nil] fileSize]/1024.0];
+        
+        NSRange range = [self.fileName rangeOfString:@"."];//匹配得到的下标
+        NSString * dest = [[self.fileName substringToIndex:range.location] stringByAppendingString:@".mp3"];
+        //NSString * dest = [[self.fileName substringWithRange:range] stringByAppendingString:@".mp3"];
+        //转换为mp3
+        [self audio_PCMtoMP3: self.fileName: dest];
+    }else{
+        //_noticeLabel.text = @"最多录60秒";
+    }
+    
+    
+}
+
+RCT_EXPORT_METHOD(initRecordVoice:
+                  (NSDictionary *)options){
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[UIApplication sharedApplication].keyWindow endEditing:YES];
+    });
+    
+    [self.window.subviews enumerateObjectsUsingBlock:^(__kindof UIView * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        
+        if ([obj isKindOfClass:[WaveformDialog class]]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                
+                [obj removeFromSuperview];
+            });
+        }
+        
+    }];
+    
+    if ([[UIDevice currentDevice].systemVersion doubleValue] >= 9.0 ) {
+        self.height=250;
+    }else{
+        self.height=220;
+    }
+    
+    self.pick=[[WaveformDialog alloc]initWithFrame:CGRectMake(0, SCREEN_HEIGHT, SCREEN_WIDTH, self.height)];
+    
+    _pick.bolock=^(NSDictionary *backinfoArry)
+    {
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            
+            [self.bridge.eventDispatcher sendAppEventWithName:@"confirmEvent" body:backinfoArry];
+        });
+    };
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        
+        [self.window addSubview:_pick];
+        
+        [UIView animateWithDuration:.3 animations:^{
+            
+            [_pick setFrame:CGRectMake(0, SCREEN_HEIGHT-self.height, SCREEN_WIDTH, self.height)];
+            
+        }];
+        
+    });
+    
+    if ([options count] != 0) {
+        
+        self.selfVoiceDir = options[@"destinationDir"];
+    }
+    //1
+    
+    //2
+    
+    //3
+    [self startRecord];
+    
+    isWaveformShowing = true;
+    
+}
+
+RCT_EXPORT_METHOD(startRecordVoice:
+                  (NSDictionary *)options) {
+    //[self initIFly: standardTxt];
+    [self startRecord];
+    
+    isWaveformShowing = true;
+}
 
 @end
