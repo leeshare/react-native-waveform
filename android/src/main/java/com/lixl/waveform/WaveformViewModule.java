@@ -103,7 +103,7 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
 
     private String standardTxt;
 
-    private String destinationDir;
+    private String destinationDir = "self";
 
 
     public WaveformViewModule(ReactApplicationContext reactContext){
@@ -148,7 +148,8 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
 
         String fullPath = mContext.getApplicationContext().getExternalFilesDir("").getAbsolutePath();
         //File file = new File(Environment.getExternalStorageDirectory().getPath(), "HelloWorld.log");
-        File file = new File(fullPath, "self_" + destinationDir);
+        //File file = new File(fullPath, "self_" + destinationDir);
+        File file = new File(fullPath, destinationDir);
         if (file.exists()) {
             file.delete();
         }
@@ -521,7 +522,8 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
         String fullPath = mContext.getApplicationContext().getExternalFilesDir("").getAbsolutePath();
         mIse.setParameter(SpeechConstant.AUDIO_FORMAT, "wav");
         //mIse.setParameter(SpeechConstant.ISE_AUDIO_PATH, fullPath + "/self.wav");
-        mIse.setParameter(SpeechConstant.ISE_AUDIO_PATH, fullPath + "/self");
+        //mIse.setParameter(SpeechConstant.ISE_AUDIO_PATH, fullPath + "/self");
+        mIse.setParameter(SpeechConstant.ISE_AUDIO_PATH, fullPath + "/" + destinationDir);
     }
 
     private void showTip(String str) {
