@@ -203,7 +203,7 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
             if(options.hasKey(DESTINATION_DIR)){
                 destinationDir = options.getString(DESTINATION_DIR);
             }
-            if (dialog == null) {
+//            if (dialog == null) {
                 dialog = new Dialog(activity, R.style.Dialog_Full_Screen);
                 dialog.setContentView(view);
                 WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
@@ -220,10 +220,9 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
                 }
 
                 dialog.show();
-            } else {
-                //dialog.dismiss();
-                dialog.show();
-            }
+//            } else {
+//                dialog.show();
+//            }
 
             voiceLineView = (VoiceLineView)view.findViewById(R.id.voicLine);
 //            initMediaRecorder();
@@ -252,6 +251,10 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
 
             if(options != null && options.hasKey(STANDARD_TXT)){
                 standardTxt = options.getString(STANDARD_TXT);
+            }
+            int height = 300;
+            if(options.hasKey(BOX_HEIGHT)){
+                height = options.getInt(BOX_HEIGHT);
             }
 
             mContext = activity.getApplicationContext();
