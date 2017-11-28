@@ -4,11 +4,9 @@ package com.lixl.waveform;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.graphics.PixelFormat;
 import android.media.MediaRecorder;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -19,11 +17,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
-//import android.support.v7.app.AppCompatActivity;
-import android.content.ContextWrapper;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
@@ -79,6 +73,8 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
     private static final String STANDARD_TXT = "standardTxt";   //用于识别语音的 标准文字
     private static final String DESTINATION_DIR = "destinationDir";     //用户语音保存地址
 
+    private static final String ISINIT = "isInit";
+
     private static final String CONFIRM_EVENT_NAME = "confirmEvent";
     private static final String EVENT_KEY_CONFIRM = "confirm";
 
@@ -104,6 +100,7 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
     private String standardTxt;
 
     private String destinationDir = "self";
+    private Boolean isInit = false;
 
 
     public WaveformViewModule(ReactApplicationContext reactContext){
@@ -203,6 +200,9 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
             if(options.hasKey(DESTINATION_DIR)){
                 destinationDir = options.getString(DESTINATION_DIR);
             }
+            if(options.hasKey(ISINIT)){
+                isInit = options.getBoolean(ISINIT);
+            }
 //            if (dialog == null) {
                 dialog = new Dialog(activity, R.style.Dialog_Full_Screen);
                 dialog.setContentView(view);
@@ -227,7 +227,10 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
             voiceLineView = (VoiceLineView)view.findViewById(R.id.voicLine);
 //            initMediaRecorder();
 
+            //mIse = SpeechEvaluator.createEvaluator(mContext, null);
             if(mIse == null){
+                mIse = SpeechEvaluator.createEvaluator(mContext, null);
+            }else if(isInit){
                 mIse = SpeechEvaluator.createEvaluator(mContext, null);
             }
             startEvaluate();
@@ -527,7 +530,7 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
         //mIse.setParameter(SpeechConstant.ISE_AUDIO_PATH, fullPath + "/self.wav");
         //mIse.setParameter(SpeechConstant.ISE_AUDIO_PATH, fullPath + "/self");
         mIse.setParameter(SpeechConstant.ISE_AUDIO_PATH, fullPath + "/" + destinationDir);
-	try {
+        try {
             File f = new File(fullPath + "/" + destinationDir);
             if(f.exists()){
                 f.delete();
