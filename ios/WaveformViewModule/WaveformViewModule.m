@@ -65,6 +65,7 @@ NSString* const KCResultNotify3=@"停止评测，结果等待中...";
 @property(nonatomic,weak)UIWindow * window;
 
 @property (nonatomic, strong) NSString* resultText;
+@property (nonatomic, strong) NSString* selfVoiceDir;
 
 @property (nonatomic, strong) PopupView *popupView;
 @property (nonatomic, strong) IFlySpeechEvaluator *iFlySpeechEvaluator;
@@ -151,8 +152,8 @@ RCT_EXPORT_METHOD(alert:(NSString *)message){
     [self.iFlySpeechEvaluator setParameter:@"xml" forKey:[IFlySpeechConstant ISE_RESULT_TYPE]];
     //[self.iFlySpeechEvaluator setParameter:@"json" forKey:[IFlySpeechConstant ISE_RESULT_TYPE]];
     
-    //[self.iFlySpeechEvaluator setParameter:@"eva.pcm" forKey:[IFlySpeechConstant ISE_AUDIO_PATH]];
-    [self.iFlySpeechEvaluator setParameter:@"self.pcm" forKey:[IFlySpeechConstant ISE_AUDIO_PATH]];
+    //[self.iFlySpeechEvaluator setParameter:@"self.pcm" forKey:[IFlySpeechConstant ISE_AUDIO_PATH]];
+    [self.iFlySpeechEvaluator setParameter:[self.selfVoiceDir stringByAppendingString:@".pcm"] forKey:[IFlySpeechConstant ISE_AUDIO_PATH]];
     
     NSStringEncoding encoding = CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingGB_18030_2000);
     
@@ -265,6 +266,7 @@ RCT_EXPORT_METHOD(_init:
         id pickerData = options[@"confirmEvent"];
         
         self.selfVoiceDir = options[@"destinationDir"];
+        NSLog(@"[_init][self.selfVoiceDir]%@", self.selfVoiceDir);
     }
     
     //[output setValue:@"" forKey:@"content"];
@@ -527,12 +529,19 @@ RCT_EXPORT_METHOD(isWaveformShow:
  *  如果发生错误则回调onError:函数
  */
 - (void)onEndOfSpeech {
-    
+    NSLog(@"[onEndOfSpeech]");
     if ([self.iseParams.audioSource isEqualToString:IFLY_AUDIO_SOURCE_STREAM]){
         [_pcmRecorder stop];
     }
+    NSLog(@"[onEndOfSpeech][self.selfVoiceDir]%@", self.selfVoiceDir);
     //转换为mp3
-    [self audio_PCMtoMP3: @"self.pcm": @"self.mp3"];
+    //[self audio_PCMtoMP3: @"self.pcm": @"self.mp3"];
+    if(self.selfVoiceDir){
+        NSString *source = [self.selfVoiceDir stringByAppendingString:@".pcm"];
+        NSString *des = [self.selfVoiceDir stringByAppendingString:@".mp3"];
+        [self audio_PCMtoMP3:source :des];
+    }
+    
 }
 
 /*!
@@ -1008,7 +1017,8 @@ RCT_EXPORT_METHOD(isWaveformShow:
     //1.获取沙盒地址
     NSString *path = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
     //filePath = [path stringByAppendingString:@"/RRecord.wav"];
-    self.fileName = [@"self_" stringByAppendingString:[self.selfVoiceDir stringByAppendingString:@".pcm"]];
+    //self.fileName = [@"self_" stringByAppendingString:[self.selfVoiceDir stringByAppendingString:@".pcm"]];
+    self.fileName = [self.selfVoiceDir stringByAppendingString:@".pcm"];
     self.filePath = [[path stringByAppendingString:@"/"] stringByAppendingString: self.fileName];
     
     //2.获取文件路径
@@ -1131,6 +1141,7 @@ RCT_EXPORT_METHOD(initRecordVoice:
     if ([options count] != 0) {
         
         self.selfVoiceDir = options[@"destinationDir"];
+        NSLog(@"[initRecordVoice][self.selfVoiceDir]%@", self.selfVoiceDir);
     }
     //1
     
