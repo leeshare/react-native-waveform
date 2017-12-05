@@ -25,6 +25,6 @@
 @property (nonatomic, strong) ISEParams *iseParams;
 //@property (nonatomic, weak) id <ISESettingDelegate> delegate;
 
-@property NSString *selfVoiceDir;
+//@property NSString *selfVoiceDir;
 
 @end
