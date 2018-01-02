@@ -38,6 +38,7 @@ import com.iflytek.cloud.SpeechConstant;
 import com.iflytek.cloud.SpeechError;
 import com.iflytek.cloud.SpeechEvaluator;
 
+import com.iflytek.cloud.SpeechEvent;
 import com.iflytek.cloud.SpeechUtility;
 import com.lixl.waveform.view.VoiceLineView;
 
@@ -72,6 +73,7 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
     private static final String BOX_HEIGHT = "boxHeight";   //弹出框 高度
     private static final String STANDARD_TXT = "standardTxt";   //用于识别语音的 标准文字
     private static final String DESTINATION_DIR = "destinationDir";     //用户语音保存地址
+    private static final String READ_CATEGORY = "readCategory";
 
     private static final String ISINIT = "isInit";
 
@@ -87,7 +89,7 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
     // 评测语种
 	private String language;
 	// 评测题型
-	private String category;
+	private String category = "read_word";
 	// 结果等级
 	private String result_level;
 
@@ -101,7 +103,6 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
 
     private String destinationDir = "self";
     private Boolean isInit = false;
-
 
     public WaveformViewModule(ReactApplicationContext reactContext){
         super(reactContext);
@@ -202,6 +203,9 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
             }
             if(options.hasKey(ISINIT)){
                 isInit = options.getBoolean(ISINIT);
+            }
+            if(options.hasKey(READ_CATEGORY)){
+                category = options.getString(READ_CATEGORY);
             }
 //            if (dialog == null) {
                 dialog = new Dialog(activity, R.style.Dialog_Full_Screen);
@@ -382,7 +386,8 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
 
             if (null != result) {
                 voiceResult = result.toString();
-                Log.d(TAG, "结果：" + voiceResult);
+                Log.d(TAG, "xml结果：" + mLastResult);
+                Log.d(TAG, "json结果：" + voiceResult);
                 showTip("结果：" + voiceResult);
 
             } else {
@@ -463,10 +468,10 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
         @Override
         public void onEvent(int eventType, int arg1, int arg2, Bundle obj) {
             // 以下代码用于获取与云端的会话id，当业务出错时将会话id提供给技术支持人员，可用于查询会话日志，定位出错原因
-            //	if (SpeechEvent.EVENT_SESSION_ID == eventType) {
-            //		String sid = obj.getString(SpeechEvent.KEY_EVENT_SESSION_ID);
-            //		Log.d(TAG, "session id =" + sid);
-            //	}
+            	if (SpeechEvent.EVENT_SESSION_ID == eventType) {
+            		String sid = obj.getString(SpeechEvent.KEY_EVENT_SESSION_ID);
+            		Log.d(TAG, "session id =" + sid);
+            	}
         }
 
     };
@@ -502,7 +507,7 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
         language = "zh_cn";
         // 设置需要评测的类型
         //category = "read_sentence";
-        category = "read_word";
+        //category = "read_word";
         // 设置结果等级（中文仅支持complete）
         result_level = "complete";
         // 设置语音前端点:静音超时时间，即用户多长时间不说话则当做超时处理
