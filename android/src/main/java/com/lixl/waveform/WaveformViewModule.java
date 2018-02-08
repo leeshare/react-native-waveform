@@ -175,9 +175,12 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
     }
 
     TextView btn;
+    VoiceLineView line;
     private void bindButtonClick(View view){
         btn = (TextView)view.findViewById(R.id.txtStopVoice);
         btn.setOnClickListener(new MyClickListener());
+        line = (VoiceLineView)view.findViewById(R.id.voicLine);
+        line.setOnClickListener(new MyClickListener());
     }
 
     @ReactMethod
