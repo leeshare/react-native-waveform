@@ -210,7 +210,12 @@ public class WaveformViewModule extends ReactContextBaseJavaModule implements Ru
             if(options.hasKey(READ_CATEGORY)){
                 category = options.getString(READ_CATEGORY);
             }
+	    if(dialog != null){
+                dialog.dismiss();
+                dialog = null;
+            }
 //            if (dialog == null) {
+		
                 dialog = new Dialog(activity, R.style.Dialog_Full_Screen);
                 dialog.setContentView(view);
                 WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
